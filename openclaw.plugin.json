@@ -1,0 +1,15 @@
+{
+  "id": "reelgrep",
+  "name": "reelgrep",
+  "description": "MCP server for reelgrep - browse and search a local video library (subtitles, frames, person searches, exports) from chat. Read-only against the local SQLite index.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "dbPath": {
+        "type": "string",
+        "description": "Absolute path to the reelgrep SQLite index. Defaults to ~/.local/share/reelgrep/index.sqlite. Sets REELGREP_DB_PATH in the server env."
+      }
+    }
+  }
+}
