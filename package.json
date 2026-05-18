@@ -1,0 +1,71 @@
+{
+  "name": "reelgrep-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for reelgrep - browse and search a local video library from chat.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "reelgrep-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "author": "Solomon Neas <srneas@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solomonneas/reelgrep-mcp.git"
+  },
+  "homepage": "https://github.com/solomonneas/reelgrep-mcp",
+  "bugs": {
+    "url": "https://github.com/solomonneas/reelgrep-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "video",
+    "search",
+    "subtitles",
+    "lectures",
+    "reelgrep",
+    "sqlite"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2"
+    },
+    "build": {
+      "openclawVersion": "2026.5.0",
+      "pluginSdkVersion": "2026.5.0"
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^11.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^25.6.0",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  },
+  "files": [
+    "dist"
+  ]
+}
