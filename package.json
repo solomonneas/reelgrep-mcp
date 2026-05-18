@@ -1,6 +1,6 @@
 {
   "name": "reelgrep-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for reelgrep - browse and search a local video library from chat.",
   "type": "module",
   "main": "dist/index.js",
