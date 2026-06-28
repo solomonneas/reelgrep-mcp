@@ -6,10 +6,11 @@ import { registerVideoTools } from "./tools/videos.js";
 import { registerSubtitleTools } from "./tools/subtitles.js";
 import { registerSearchTools } from "./tools/searches.js";
 import { registerExportTools } from "./tools/exports.js";
+import pkg from "../package.json" with { type: "json" };
 
-const VERSION = "0.1.0";
+export const VERSION = pkg.version;
 
-async function main(): Promise<void> {
+export function createServer(): McpServer {
   const config = getConfig();
   const client = new ReelgrepClient(config.dbPath);
 
@@ -53,26 +54,33 @@ async function main(): Promise<void> {
     },
   );
 
-  const transport = new StdioServerTransport();
-  // Strip the draft-07 `$schema` the MCP SDK stamps on tool schemas; Anthropic
-  // rejects it ("must match JSON Schema draft 2020-12") when the full tool set
-  // is sent, e.g. on subagent spawns. Intercept tools/list output here.
-  const __send = transport.send.bind(transport);
-  (transport as any).send = (message: any) => {
-    const tools = message?.result?.tools;
-    if (Array.isArray(tools)) {
-      for (const t of tools) {
-        if (t?.inputSchema) delete t.inputSchema.$schema;
-        if (t?.outputSchema) delete t.outputSchema.$schema;
-      }
-    }
-    return __send(message);
-  };
-  await server.connect(transport);
+  return server;
 }
 
-main().catch((error: unknown) => {
-  const msg = error instanceof Error ? error.message : String(error);
-  console.error(`reelgrep-mcp fatal: ${msg}`);
-  process.exit(1);
-});
+// Strip the draft-07 `$schema` the MCP SDK stamps on tool schemas; Anthropic
+// rejects it ("must match JSON Schema draft 2020-12") when the full tool set
+// is sent, e.g. on subagent spawns. Used to intercept tools/list output.
+export function stripDraftSchema(message: any): void {
+  const tools = message?.result?.tools;
+  if (Array.isArray(tools)) {
+    for (const t of tools) {
+      if (t?.inputSchema) delete t.inputSchema.$schema;
+      if (t?.outputSchema) delete t.outputSchema.$schema;
+    }
+  }
+}
+
+export function applySchemaStripIntercept(transport: { send: (message: any, ...rest: any[]) => unknown }): void {
+  const __send = transport.send.bind(transport);
+  (transport as any).send = (message: any, ...rest: any[]) => {
+    stripDraftSchema(message);
+    return __send(message, ...rest);
+  };
+}
+
+export async function serve(): Promise<void> {
+  const server = createServer();
+  const transport = new StdioServerTransport();
+  applySchemaStripIntercept(transport);
+  await server.connect(transport);
+}
