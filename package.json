@@ -6,12 +6,13 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "reelgrep-mcp": "./dist/index.js"
+    "reelgrep": "./dist/cli.js",
+    "reelgrep-mcp": "./dist/mcp-bin.js"
   },
   "scripts": {
     "build": "tsup",
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "tsx watch src/mcp-bin.ts",
+    "start": "node dist/cli.js mcp",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -42,7 +43,7 @@
   },
   "openclaw": {
     "extensions": [
-      "./dist/index.js"
+      "./dist/mcp-bin.js"
     ],
     "compat": {
       "pluginApi": ">=2026.3.24-beta.2"

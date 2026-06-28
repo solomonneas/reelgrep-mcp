@@ -80,6 +80,33 @@ All tools are namespaced `reelgrep_*`. Parameters with `?` are optional.
 
 - `reelgrep_health`() - Confirms the DB is reachable, prints the resolved DB path and indexed video count. Run this first if anything looks off.
 
+## CLI
+
+The same package ships an operator CLI for shells, cron, and CI. It is read-only and reads the same local reelgrep SQLite index.
+
+```bash
+npx reelgrep@latest subtitles search "schema design" --limit 5
+# or, installed globally, simply:
+reelgrep videos list
+reelgrep videos info 8b63a736
+reelgrep subtitles search "eventual consistency"
+reelgrep subtitles cues 8b63a736 300000 --window 15
+reelgrep quote find "ACID properties"
+reelgrep searches list
+reelgrep searches matches 1
+reelgrep exports list --kind clip
+reelgrep health            # exit 1 if the index is not reachable (cron-friendly)
+reelgrep --json videos list  # raw JSON for piping
+```
+
+Run `reelgrep help` for the full flag list. Configure with `REELGREP_DB_PATH` (default `~/.local/share/reelgrep/index.sqlite`).
+
+Exit codes: `0` success; `1` runtime error (index missing or unreadable, or `health` when the index cannot be opened); `2` usage error (unknown command/flag or a bad value).
+
+### Starting the MCP server
+
+`reelgrep mcp` (or the back-compat `reelgrep-mcp` bin) starts the stdio MCP server. If a launcher referenced the file path `dist/index.js` directly, point it at `dist/mcp-bin.js` (or `dist/cli.js mcp`); launchers that use the `reelgrep-mcp` bin name need no change.
+
 ## Setup
 
 Configuration snippets for each MCP client. Pick the one that matches your setup; the env var (`REELGREP_DB_PATH`) is the same everywhere.
@@ -219,7 +246,7 @@ REELGREP_DB_PATH=$HOME/.local/share/reelgrep/index.sqlite npm run dev
 Test interactively with the [MCP Inspector](https://github.com/modelcontextprotocol/inspector):
 
 ```bash
-npx @modelcontextprotocol/inspector node dist/index.js
+npx @modelcontextprotocol/inspector node dist/mcp-bin.js
 ```
 
 The inspector lets you call each tool with arbitrary inputs and see raw responses, which is the fastest way to validate a new tool handler.
