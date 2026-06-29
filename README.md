@@ -82,7 +82,7 @@ All tools are namespaced `reelgrep_*`. Parameters with `?` are optional.
 
 ## CLI
 
-The same package ships an operator CLI for shells, cron, and CI. It is read-only and reads the same local reelgrep SQLite index.
+The same package ships a read-only **search tool**, `reelgrep`, for shells, cron, and CI. It reads the same local reelgrep SQLite index.
 
 ```bash
 npx reelgrep@latest subtitles search "schema design" --limit 5
