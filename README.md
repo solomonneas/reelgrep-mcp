@@ -2,7 +2,7 @@
 
 > MCP server for [reelgrep](https://github.com/solomonneas/reelgrep) - browse and search your local video library from any MCP client.
 
-Status: v0.1.0. Read-only tools (browse + search). Write operations (transcribe, export, find-person) ship via the reelgrep CLI today and may land here later if there's demand.
+Status: v0.1.1. Read-only tools (browse + search). Write operations (transcribe, export, find-person) ship via the reelgrep CLI today and may land here later if there's demand.
 
 [reelgrep](https://github.com/solomonneas/reelgrep) is a local-first CLI that indexes a folder of videos and their subtitles into a single SQLite database. reelgrep-mcp opens that same index directly via `better-sqlite3`, so there's no second daemon to run and no HTTP hop. The headline use case is cross-library FTS5 subtitle search from a chat agent ("which lecture mentioned eventual consistency?") with the matching cue and timestamp returned inline.
 
