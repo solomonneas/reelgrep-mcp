@@ -120,8 +120,8 @@ Set these variables in the server environment before starting:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `REELGREP_MCP_HTTP_TOKEN` | Required | Independent bearer token. Blank values prevent startup |
-| `REELGREP_MCP_HTTP_HOST` | IPv4 loopback | Listener bind address |
+| `REELGREP_MCP_HTTP_TOKEN` | Required | Independent bearer token of at least 32 characters, trimmed. Blank or short values prevent startup |
+| `REELGREP_MCP_HTTP_HOST` | IPv4 loopback | Listener bind address. Wildcards (`0.0.0.0`, `::`) are refused; bind a specific interface |
 | `REELGREP_MCP_HTTP_PORT` | `18816` | TCP port. `0` selects a free port |
 | `REELGREP_DB_PATH` | See Configuration | Operator-selected index file, shared read-only by authorized clients |
 

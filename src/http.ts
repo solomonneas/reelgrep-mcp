@@ -76,14 +76,21 @@ export interface HttpServerHandle {
 
 export async function createHttpServer(): Promise<HttpServerHandle> {
   const env = process.env;
-  const token = env.REELGREP_MCP_HTTP_TOKEN;
-  if (!token?.trim()) throw new Error("REELGREP_MCP_HTTP_TOKEN is required and must not be blank");
+  // Header values arrive trimmed, so compare against the trimmed secret.
+  const token = (env.REELGREP_MCP_HTTP_TOKEN ?? "").trim();
+  if (!token) throw new Error("REELGREP_MCP_HTTP_TOKEN is required and must not be blank");
+  if (token.length < 32) throw new Error("REELGREP_MCP_HTTP_TOKEN must be at least 32 characters (e.g. openssl rand -hex 32)");
   // This server holds no upstream credentials and has no secret-redaction registry.
   // Snapshot operator configuration once; sessions cannot alter access policy.
   const cfg = getConfig();
   const host = env.REELGREP_MCP_HTTP_HOST ?? "127.0.0.1";
   if (!host.trim() || host.includes("/") || host.includes("@")) {
     throw new Error("REELGREP_MCP_HTTP_HOST must be a host name or address");
+  }
+  // validHost only accepts loopback aliases or the exact bound host, so a
+  // wildcard bind would answer 403 to every non-loopback client.
+  if (["0.0.0.0", "::", "[::]"].includes(host.trim())) {
+    throw new Error("REELGREP_MCP_HTTP_HOST must be a specific address, not a wildcard; bind the interface clients will use");
   }
   const portValue = env.REELGREP_MCP_HTTP_PORT ?? "18816";
   if (!/^\d+$/.test(portValue) || Number(portValue) > 65535) {
