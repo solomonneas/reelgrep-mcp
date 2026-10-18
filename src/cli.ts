@@ -17,7 +17,7 @@ export class UsageError extends Error {}
 export type Parsed =
   | { kind: "help" }
   | { kind: "version" }
-  | { kind: "mcp" }
+  | { kind: "mcp"; http?: boolean }
   | { kind: "health"; json: boolean }
   | { kind: "videos-list"; json: boolean; limit: number; offset: number }
   | { kind: "videos-info"; json: boolean; fileHash: string }
@@ -61,7 +61,7 @@ Commands:
   searches list                     List person/object searches
   searches matches <search_id>      One search with its matches, highest confidence first
   exports list                      List export artifacts (screenshots, clips, gifs, sheets)
-  mcp                               Start the MCP server over stdio
+  mcp [--http]                      Start the MCP server over stdio or HTTP
   help                              Show this help
 
 Global options:
@@ -315,7 +315,7 @@ export function parseArgs(argv: string[]): Parsed {
   const json = takeFlag(args, "--json");
   switch (cmd) {
     case "mcp":
-      return { kind: "mcp" };
+      return takeFlag(args, "--http") ? { kind: "mcp", http: true } : { kind: "mcp" };
     case "health":
       ensureNoExtra(args);
       return { kind: "health", json };
@@ -637,7 +637,7 @@ export interface CliDeps {
   out: (s: string) => void;
   err: (s: string) => void;
   makeClient: () => ReelgrepClient;
-  serve: () => Promise<void>;
+  serve: (http?: boolean) => Promise<void>;
 }
 
 export async function run(argv: string[], deps: CliDeps): Promise<number> {
@@ -660,7 +660,8 @@ export async function run(argv: string[], deps: CliDeps): Promise<number> {
     return 0;
   }
   if (parsed.kind === "mcp") {
-    await deps.serve();
+    if (parsed.http) await deps.serve(true);
+    else await deps.serve();
     return 0;
   }
 

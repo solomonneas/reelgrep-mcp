@@ -1,0 +1,22 @@
+[Unit]
+Description=reelgrep MCP HTTP server
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/reelgrep-mcp
+ExecStart=/usr/bin/node /opt/reelgrep-mcp/dist/mcp-bin.js --http
+# Create this file with mode 0600 before storing the token.
+# Set REELGREP_MCP_HTTP_TOKEN and REELGREP_DB_PATH in it.
+EnvironmentFile=%h/.config/reelgrep-mcp/http.env
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=default.target

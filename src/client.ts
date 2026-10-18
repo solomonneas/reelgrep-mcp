@@ -134,7 +134,7 @@ export class ReelgrepClient {
 
   /** Close the underlying SQLite handle. */
   close(): void {
-    this.db.close();
+    if (this.db.open) this.db.close();
   }
 
   /** Total number of indexed videos. Used by reelgrep_health. */
