@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { getConfig } from "./config.js";
+import { getConfig, type ReelgrepConfig } from "./config.js";
 import { ReelgrepClient } from "./client.js";
 import { registerVideoTools } from "./tools/videos.js";
 import { registerSubtitleTools } from "./tools/subtitles.js";
@@ -10,9 +10,9 @@ import pkg from "../package.json" with { type: "json" };
 
 export const VERSION = pkg.version;
 
-export function createServer(): McpServer {
-  const config = getConfig();
-  const client = new ReelgrepClient(config.dbPath);
+export function createServer(options: { config?: ReelgrepConfig; localFiles?: boolean } = {}): McpServer {
+  const config = options.config ?? getConfig();
+  const client = new ReelgrepClient(config.dbPath, options.localFiles ?? true);
 
   const server = new McpServer({
     name: "reelgrep-mcp",
@@ -20,6 +20,9 @@ export function createServer(): McpServer {
     description:
       "MCP server for reelgrep - browse and search a local video library (subtitles, frames, person searches, exports) from chat.",
   });
+
+  // The transport's onclose chains into the SDK server, which releases this session's DB.
+  server.server.onclose = () => client.close();
 
   registerVideoTools(server, client);
   registerSubtitleTools(server, client);
@@ -78,7 +81,12 @@ export function applySchemaStripIntercept(transport: { send: (message: any, ...r
   };
 }
 
-export async function serve(): Promise<void> {
+export async function serve(http = false): Promise<void> {
+  if (http) {
+    const { startHttpServer } = await import("./http.js");
+    await startHttpServer();
+    return;
+  }
   const server = createServer();
   const transport = new StdioServerTransport();
   applySchemaStripIntercept(transport);

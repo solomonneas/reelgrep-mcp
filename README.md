@@ -44,7 +44,7 @@ npm run build
 
 ## Configuration
 
-One environment variable:
+Stdio configuration:
 
 | Variable | Default | Description |
 |---|---|---|
@@ -107,6 +107,109 @@ Exit codes: `0` success; `1` runtime error (index missing or unreadable, or `hea
 
 `reelgrep mcp` (or the back-compat `reelgrep-mcp` bin) starts the stdio MCP server. If a launcher referenced the file path `dist/index.js` directly, point it at `dist/mcp-bin.js` (or `dist/cli.js mcp`); launchers that use the `reelgrep-mcp` bin name need no change.
 
+## HTTP mode
+
+Run one process shared by multiple MCP clients:
+
+```sh
+node dist/mcp-bin.js --http
+# Or: node dist/cli.js mcp --http
+```
+
+Set these variables in the server environment before starting:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `REELGREP_MCP_HTTP_TOKEN` | Required | Independent bearer token. Blank values prevent startup |
+| `REELGREP_MCP_HTTP_HOST` | IPv4 loopback | Listener bind address |
+| `REELGREP_MCP_HTTP_PORT` | `18816` | TCP port. `0` selects a free port |
+| `REELGREP_MCP_HTTP_LOCAL_FILES` | `false` | Only the exact value `true` allows local SQLite index access |
+| `REELGREP_DB_PATH` | See Configuration | Operator-selected index file, shared read-only by authorized clients |
+
+Generate an HTTP token with `openssl rand -hex 32` and store it privately.
+This server holds no upstream credentials. Authentication compares SHA-256
+hashes with `timingSafeEqual`. The token is never logged or returned by tools.
+The resolved listening address is printed to stderr.
+
+`/mcp` serves stateful Streamable HTTP with bearer authentication on POST, GET,
+and DELETE. Unauthenticated `GET /healthz` returns only `{"status":"ok"}`.
+Host and Origin checks run before authentication: Host must match the bound host
+or a loopback alias, and a supplied Origin must be an HTTP or HTTPS loopback
+origin. Request bodies are limited to 1 MiB, including chunked requests. Request
+and header timeouts are 30 and 10 seconds. The service accepts up to 128 sessions,
+reaps sessions idle for 30 minutes on a minute timer, and closes sessions and the
+listener on SIGTERM or SIGINT. Active POST requests are excluded from idle
+expiry. An idle SSE connection does not keep a session alive.
+
+Local-file access is disabled by default in HTTP mode. Tools remain discoverable,
+but calls return an error until `REELGREP_MCP_HTTP_LOCAL_FILES=true`. This gate
+also covers the local SQLite index and diagnostics. When enabled, each session
+opens its own read-only SQLite handle for the configured index and closes it on
+session shutdown. The policy and index path are captured when the listener
+starts. Stdio keeps its existing local access behavior.
+
+Saved searches, matches, and export records are existing SQLite rows shared
+read-only by every authorized session. There are no pending approvals, match
+caches, deferred tool sets, export jobs, or mutable process-wide tool state.
+Tools return metadata and recorded file paths. They do not open videos,
+subtitles, frames, or exported artifacts, and cannot create clips or cues.
+No tool accepts a filesystem path or promises a confinement directory. The only
+opened file is the operator-configured SQLite index (and SQLite-managed sidecar
+files). No artifact-directory confinement is claimed.
+
+All clients with the bearer token share access to the same library. Session IDs
+route protocol state and do not identify separate users. Keep the default
+loopback binding. Remote access needs a trusted TLS proxy or tunnel and network
+access controls. Preserve an allowed Host header. Wildcard binding does not
+permit arbitrary Host headers. Clients must reinitialize after idle expiry or
+a service restart.
+
+### Claude Code
+
+The helper reads the token from its environment and prints an authorization
+header object. Save this as an executable helper outside the repository:
+
+```python
+#!/usr/bin/env python3
+import json
+import os
+import sys
+
+print(json.dumps({"Authorization": "Bearer " + os.environ[sys.argv[1]]}))
+```
+
+Configure the client with the same token environment variable:
+
+```json
+{
+  "mcpServers": {
+    "reelgrep": {
+      "type": "http",
+      "url": "http://localhost:18816/mcp",
+      "headersHelper": "/path/to/helper REELGREP_MCP_HTTP_TOKEN"
+    }
+  }
+}
+```
+
+### Codex
+
+Use streamable HTTP with an environment-backed bearer token:
+
+```toml
+[mcp_servers.reelgrep]
+url = "http://localhost:18816/mcp"
+bearer_token_env_var = "REELGREP_MCP_HTTP_TOKEN"
+```
+
+### systemd user service
+
+An example unit is in [docs/systemd/reelgrep-mcp-http.service](docs/systemd/reelgrep-mcp-http.service).
+Adjust the install path and Node executable. Create its EnvironmentFile with mode
+`0600` before adding secrets. It should contain `REELGREP_MCP_HTTP_TOKEN`,
+`REELGREP_DB_PATH`, and `REELGREP_MCP_HTTP_LOCAL_FILES=true` to enable index queries.
+The unit applies `NoNewPrivileges=true`, `PrivateTmp=true`, and `UMask=0077`.
+
 ## Setup
 
 Configuration snippets for each MCP client. Pick the one that matches your setup; the env var (`REELGREP_DB_PATH`) is the same everywhere.
@@ -122,7 +225,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
       "command": "npx",
       "args": ["-y", "reelgrep-mcp"],
       "env": {
-        "REELGREP_DB_PATH": "/home/you/.local/share/reelgrep/index.sqlite"
+        "REELGREP_DB_PATH": "/path/to/index.sqlite"
       }
     }
   }
@@ -149,7 +252,7 @@ Add `--scope user` to make it available from any directory instead of only the c
 
 ```bash
 openclaw mcp set reelgrep --command "npx" --arg "-y" --arg "reelgrep-mcp" \
-  --env REELGREP_DB_PATH=/home/you/.local/share/reelgrep/index.sqlite
+  --env REELGREP_DB_PATH=/path/to/index.sqlite
 ```
 
 Or edit `~/.openclaw/openclaw.json` directly if you prefer. Restart the gateway after either:
@@ -169,7 +272,7 @@ mcp_servers:
     command: npx
     args: ["-y", "reelgrep-mcp"]
     env:
-      REELGREP_DB_PATH: /home/you/.local/share/reelgrep/index.sqlite
+      REELGREP_DB_PATH: /path/to/index.sqlite
 ```
 
 Reload MCP from inside a Hermes session:
@@ -188,7 +291,7 @@ With an explicit DB path:
 
 ```bash
 codex mcp add reelgrep \
-  --env REELGREP_DB_PATH=/home/you/.local/share/reelgrep/index.sqlite \
+  --env REELGREP_DB_PATH=/path/to/index.sqlite \
   -- npx -y reelgrep-mcp
 ```
 
