@@ -10,9 +10,9 @@ import pkg from "../package.json" with { type: "json" };
 
 export const VERSION = pkg.version;
 
-export function createServer(options: { config?: ReelgrepConfig; localFiles?: boolean } = {}): McpServer {
+export function createServer(options: { config?: ReelgrepConfig } = {}): McpServer {
   const config = options.config ?? getConfig();
-  const client = new ReelgrepClient(config.dbPath, options.localFiles ?? true);
+  const client = new ReelgrepClient(config.dbPath);
 
   const server = new McpServer({
     name: "reelgrep-mcp",

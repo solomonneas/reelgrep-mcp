@@ -24,7 +24,6 @@ const env = {
   REELGREP_MCP_HTTP_TOKEN: TOKEN,
   REELGREP_MCP_HTTP_PORT: "0",
   REELGREP_MCP_HTTP_HOST: undefined,
-  REELGREP_MCP_HTTP_LOCAL_FILES: "true",
 };
 let http: HttpServerHandle | undefined;
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -162,17 +161,6 @@ describe("authenticated Streamable HTTP", () => {
     expect(response.status).toBe(404);
   });
 
-  it.each([undefined, "false", "1"])("blocks local index access without explicit true opt-in: %s", async (value) => {
-    const url = await start({ REELGREP_MCP_HTTP_LOCAL_FILES: value, REELGREP_DB_PATH: join(directory, "missing.sqlite") });
-    const { client } = await connect(url);
-    expect((await client.listTools()).tools).toHaveLength(9);
-    for (const name of ["reelgrep_health", "reelgrep_list_videos", "reelgrep_list_searches", "reelgrep_get_search_matches", "reelgrep_list_exports"]) {
-      const result = await client.callTool({ name, arguments: name === "reelgrep_get_search_matches" ? { search_id: 1 } : {} });
-      expect(result.isError).toBe(true);
-      expect(JSON.stringify(result.content)).toContain("REELGREP_MCP_HTTP_LOCAL_FILES");
-    }
-  });
-
   it("keeps concurrent sessions independent when one closes its index", async () => {
     const url = await start();
     const [a, b] = await Promise.all([connect(url), connect(url)]);
@@ -191,7 +179,7 @@ describe("authenticated Streamable HTTP", () => {
   });
 
   it("caps sessions and frees capacity when a session terminates", async () => {
-    const url = await start({ REELGREP_MCP_HTTP_LOCAL_FILES: undefined });
+    const url = await start();
     const initialize = () => fetch(`${url}/mcp`, {
       method: "POST",
       headers: { authorization: `Bearer ${TOKEN}`, "content-type": "application/json", accept: "application/json, text/event-stream" },

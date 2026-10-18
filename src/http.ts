@@ -81,7 +81,6 @@ export async function createHttpServer(): Promise<HttpServerHandle> {
   // This server holds no upstream credentials and has no secret-redaction registry.
   // Snapshot operator configuration once; sessions cannot alter access policy.
   const cfg = getConfig();
-  const localFiles = env.REELGREP_MCP_HTTP_LOCAL_FILES === "true";
   const host = env.REELGREP_MCP_HTTP_HOST ?? "127.0.0.1";
   if (!host.trim() || host.includes("/") || host.includes("@")) {
     throw new Error("REELGREP_MCP_HTTP_HOST must be a host name or address");
@@ -134,7 +133,7 @@ export async function createHttpServer(): Promise<HttpServerHandle> {
     if (!session) {
       if (request.method !== "POST" || !isInitializeRequest(body)) return send(response, 400, "Initialize a session first");
       if (resources.size >= MAX_SESSIONS) return send(response, 503, "Service unavailable");
-      const server = createMcpServer({ config: cfg, localFiles });
+      const server = createMcpServer({ config: cfg });
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: randomUUID,
         enableJsonResponse: true,

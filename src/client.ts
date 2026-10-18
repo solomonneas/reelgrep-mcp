@@ -116,33 +116,25 @@ const VIDEO_SUMMARY_SELECT = `SELECT v.*,
   FROM videos v`;
 
 export class ReelgrepClient {
-  private connection: Database.Database | undefined;
-
-  private get db(): Database.Database {
-    if (!this.connection) {
-      throw new Error("Local index access requires REELGREP_MCP_HTTP_LOCAL_FILES=true in HTTP mode");
-    }
-    return this.connection;
-  }
+  private db: Database.Database;
 
   /**
    * Open the reelgrep index in readonly mode.
    * Accepts either a filesystem path or an already-opened Database instance
    * (the latter is used by the test suite to drive an in-memory DB).
    */
-  constructor(dbOrPath: string | Database.Database, localFiles = true) {
-    if (!localFiles) return;
+  constructor(dbOrPath: string | Database.Database) {
     if (typeof dbOrPath === "string") {
-      this.connection = new Database(dbOrPath, { readonly: true, fileMustExist: true });
+      this.db = new Database(dbOrPath, { readonly: true, fileMustExist: true });
       this.db.pragma("journal_mode = WAL");
     } else {
-      this.connection = dbOrPath;
+      this.db = dbOrPath;
     }
   }
 
   /** Close the underlying SQLite handle. */
   close(): void {
-    if (this.connection?.open) this.connection.close();
+    if (this.db.open) this.db.close();
   }
 
   /** Total number of indexed videos. Used by reelgrep_health. */

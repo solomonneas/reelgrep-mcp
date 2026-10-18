@@ -123,7 +123,6 @@ Set these variables in the server environment before starting:
 | `REELGREP_MCP_HTTP_TOKEN` | Required | Independent bearer token. Blank values prevent startup |
 | `REELGREP_MCP_HTTP_HOST` | IPv4 loopback | Listener bind address |
 | `REELGREP_MCP_HTTP_PORT` | `18816` | TCP port. `0` selects a free port |
-| `REELGREP_MCP_HTTP_LOCAL_FILES` | `false` | Only the exact value `true` allows local SQLite index access |
 | `REELGREP_DB_PATH` | See Configuration | Operator-selected index file, shared read-only by authorized clients |
 
 Generate an HTTP token with `openssl rand -hex 32` and store it privately.
@@ -141,12 +140,11 @@ reaps sessions idle for 30 minutes on a minute timer, and closes sessions and th
 listener on SIGTERM or SIGINT. Active POST requests are excluded from idle
 expiry. An idle SSE connection does not keep a session alive.
 
-Local-file access is disabled by default in HTTP mode. Tools remain discoverable,
-but calls return an error until `REELGREP_MCP_HTTP_LOCAL_FILES=true`. This gate
-also covers the local SQLite index and diagnostics. When enabled, each session
-opens its own read-only SQLite handle for the configured index and closes it on
-session shutdown. The policy and index path are captured when the listener
-starts. Stdio keeps its existing local access behavior.
+No tool accepts a filesystem path. Tools read only the operator-configured
+`REELGREP_DB_PATH` index and return recorded paths without opening media or
+artifact files. Each session opens its own read-only SQLite handle for that index
+and closes it on session shutdown. The index path is captured when the listener
+starts.
 
 Saved searches, matches, and export records are existing SQLite rows shared
 read-only by every authorized session. There are no pending approvals, match
@@ -207,7 +205,7 @@ bearer_token_env_var = "REELGREP_MCP_HTTP_TOKEN"
 An example unit is in [docs/systemd/reelgrep-mcp-http.service](docs/systemd/reelgrep-mcp-http.service).
 Adjust the install path and Node executable. Create its EnvironmentFile with mode
 `0600` before adding secrets. It should contain `REELGREP_MCP_HTTP_TOKEN`,
-`REELGREP_DB_PATH`, and `REELGREP_MCP_HTTP_LOCAL_FILES=true` to enable index queries.
+and `REELGREP_DB_PATH`.
 The unit applies `NoNewPrivileges=true`, `PrivateTmp=true`, and `UMask=0077`.
 
 ## Setup

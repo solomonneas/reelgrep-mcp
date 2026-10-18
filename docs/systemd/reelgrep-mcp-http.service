@@ -9,7 +9,6 @@ WorkingDirectory=/opt/reelgrep-mcp
 ExecStart=/usr/bin/node /opt/reelgrep-mcp/dist/mcp-bin.js --http
 # Create this file with mode 0600 before storing the token.
 # Set REELGREP_MCP_HTTP_TOKEN and REELGREP_DB_PATH in it.
-# Set REELGREP_MCP_HTTP_LOCAL_FILES=true to enable index queries.
 EnvironmentFile=%h/.config/reelgrep-mcp/http.env
 Restart=on-failure
 RestartSec=5
